@@ -1,4 +1,4 @@
-import express from "express";
+import express, { response } from "express";
 import cors from "cors";
 import { PrismaClient } from "@prisma/client";
 
@@ -30,8 +30,21 @@ app.get("/users/:id", async (req, res) => {
 });
 
 app.post("/users", async (req, res) => {
+  const userData = { hobbies: req.body.hobbies ? req.body.hobbies : [] };
+
   const user = await prisma.user.create({
-    data: req.body,
+    data: {
+      name: req.body.name,
+      url: req.body.url,
+      email: req.body.email,
+      hobbies: {
+        //@ts-ignore
+        connectOrCreate: userData.hobbies.map((hobby) => ({
+          where: { name: hobby },
+          create: { name: hobby },
+        })),
+      },
+    },
     include: { hobbies: true },
   });
   res.send(user);
@@ -59,7 +72,7 @@ app.patch("/users/:id", async (req, res) => {
 
 app.get("/hobbies", async (req, res) => {
   const hobby = await prisma.hobby.findMany({
-    include: { user: true },
+    include: { users: true },
   });
   res.send(hobby);
 });
@@ -68,7 +81,7 @@ app.get("/hobbies/:id", async (req, res) => {
   const id = Number(req.params.id);
   const hobby = await prisma.hobby.findUnique({
     where: { id },
-    include: { user: true },
+    include: { users: true },
   });
 
   if (hobby) {
@@ -79,9 +92,25 @@ app.get("/hobbies/:id", async (req, res) => {
 });
 
 app.post("/hobbies", async (req, res) => {
+  const hobbyData = {
+    users: req.body.users ? req.body.users : [],
+  };
+
   const hobby = await prisma.hobby.create({
-    data: req.body,
-    include: { user: true },
+    data: {
+      name: req.body.name,
+      image: req.body.image,
+      active: req.body.active,
+      users: {
+        //@ts-ignore
+
+        connectOrCreate: hobbyData.users.map((user) => ({
+          where: { name: user },
+          create: { name: user },
+        })),
+      },
+    },
+    include: { users: true },
   });
   res.send(hobby);
 });
@@ -99,7 +128,7 @@ app.patch("/hobbies/:id", async (req, res) => {
   const hobby = await prisma.hobby.update({
     where: { id },
     data: req.body,
-    include: { user: true },
+    include: { users: true },
   });
   res.send(hobby);
 });
@@ -107,3 +136,6 @@ app.patch("/hobbies/:id", async (req, res) => {
 app.listen(port, () => {
   console.log(`Runing: http://localhost:${port}`);
 });
+
+
+//Red underlines, but the server is runing without problems
